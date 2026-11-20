@@ -8,7 +8,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 from database import recategorize_all, save_receipt
 from ocr_engine import extract_receipt_text
 from parser import parse_receipt, reconstruct_lines
-from reports import generate_reports
+from reports import generate_reports, generate_charts
 
 IMAGE_EXTENSIONS = (".jpg", ".jpeg", ".png", ".webp")
 
@@ -58,10 +58,13 @@ def main():
   scan_parser.add_argument("--debug", action="store_true", help="Save OCR bounding-box debug images to output/")
 
   # report command
-  subparsers.add_parser("report", help="Generate spending reports")
+  #subparsers.add_parser("report", help="Generate spending reports")
+  report_parser = subparsers.add_parser("report", help="Generate spending reports")
+  report_parser.add_argument("--charts", action="store_true", help="Save visual charts to output/charts/")
 
   # recategorize command
   subparsers.add_parser("recategorize", help="Re-apply category rules to all saved items")
+  
 
   args = parser.parse_args()
 
@@ -69,6 +72,8 @@ def main():
     handle_scan(args.path, args.debug)
   elif args.command == "report":
     generate_reports()
+    if args.charts:
+      generate_charts()
   elif args.command == "recategorize":
     recategorize_all()
 

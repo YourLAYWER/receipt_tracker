@@ -1,6 +1,9 @@
 import os
 import sqlite3
 import pandas as pd
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
 
 DB_PATH = os.path.join("data", "expenses.db")
 
@@ -89,7 +92,62 @@ def generate_reports():
   print(top_items.to_string())
 
 
+def generate_charts(output_dir: str = os.path.join("output", "charts")):
+  """Generates a 2x2 spending dashboard PNG from the SQLite database."""
+  receipts, items = load_data()
+  if receipts.empty:
+    print("No receipts found to chart.")
+    return
 
+  os.makedirs(output_dir, exist_ok=True)
+  purchased = items[items["is_discount"] == 0]
+
+  fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+  fig.suptitle("Personal Grocery Spending Dashboard", fontsize=16, fontweight="bold")
+
+  # 1. Spend by Category (Horizontal Bar)
+  by_cat = purchased.groupby("category")["price"].sum().sort_values()
+  axes[0, 0].barh(by_cat.index, by_cat.values, color="#4C72B0")
+  axes[0, 0].set_title("Spend by Category (R)")
+  axes[0, 0].set_xlabel("Amount (R)")
+  for idx, val in enumerate(by_cat.values):
+    axes[0, 0].text(val + 2, idx, f"R{val:.2f}", va="center", fontsize=9)
+
+  # 2. Monthly Spend (Vertical Bar)
+  dated = receipts.dropna(subset=["receipt_date"]).copy()
+  if not dated.empty:
+    dated["Month"] = dated["receipt_date"].dt.to_period("M").astype(str)
+    by_month = dated.groupby("Month")["total_amount"].sum()
+    axes[0, 1].bar(by_month.index, by_month.values, color="#55A868", width=0.5)
+    axes[0, 1].set_title("Monthly Spend (R)")
+    axes[0, 1].set_ylabel("Amount (R)")
+    for idx, val in enumerate(by_month.values):
+      axes[0, 1].text(idx, val + 5, f"R{val:.2f}", ha="center", fontsize=9)
+  else:
+    axes[0, 1].text(0.5, 0.5, "No dated receipts", ha="center", va="center")
+    axes[0, 1].set_title("Monthly Spend (R)")
+
+  # 3. Spend by Store (Vertical Bar)
+  by_store = receipts.groupby("store")["total_amount"].sum().sort_values(ascending=False)
+  axes[1, 0].bar(by_store.index, by_store.values, color="#C44E52", width=0.5)
+  axes[1, 0].set_title("Spend by Store (R)")
+  axes[1, 0].set_ylabel("Amount (R)")
+  for idx, val in enumerate(by_store.values):
+    axes[1, 0].text(idx, val + 5, f"R{val:.2f}", ha="center", fontsize=9)
+
+  # 4. Top 5 Items by Spend (Horizontal Bar)
+  top_items = purchased.groupby("name")["price"].sum().sort_values().tail(5)
+  axes[1, 1].barh(top_items.index, top_items.values, color="#8172B2")
+  axes[1, 1].set_title("Top 5 Items by Spend (R)")
+  axes[1, 1].set_xlabel("Amount (R)")
+  for idx, val in enumerate(top_items.values):
+    axes[1, 1].text(val + 2, idx, f"R{val:.2f}", va="center", fontsize=9)
+
+  plt.tight_layout(rect=[0, 0, 1, 0.96])
+  out_path = os.path.join(output_dir, "spending_dashboard.png")
+  plt.savefig(out_path, dpi=150)
+  plt.close(fig)
+  print(f"\nDashboard chart saved to: {out_path}")
 
 if __name__ == "__main__":
   generate_reports()
