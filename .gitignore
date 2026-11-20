@@ -1,0 +1,11 @@
+# Virtual environments
+.venv/
+venv/
+
+# Python cache files
+__pycache__/
+*.py[cod]
+
+# Project data (uncomment if you don't want to upload personal receipts)
+data/sample_receipts/*
+output/*
