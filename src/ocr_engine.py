@@ -5,7 +5,7 @@ from paddleocr import PaddleOCR
 
 # Initialize PaddleOCR once (downloads lightweight models on first run)
 ocr = PaddleOCR(
-    use_doc_orientation_classify=False,
+    use_doc_orientation_classify=True,
     use_doc_unwarping=True,
     use_textline_orientation=False,
 )

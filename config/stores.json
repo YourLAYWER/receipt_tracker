@@ -1,0 +1,48 @@
+{
+    "Shoprite": [
+        "SHOPRITE"
+    ],
+    "Checkers": [
+        "CHECKERS"
+    ],
+    "SuperSpar": [
+        "SUPERSPAR",
+        "KWIKSPAR",
+        "SPAR"
+    ],
+    "Pick n Pay": [
+        "PICK N PAY",
+        "PNP"
+    ],
+    "Woolworths": [
+        "WOOLWORTHS",
+        "WOOLIES"
+    ],
+    "Boxer": [
+        "BOXER"
+    ],
+    "Food Lover's Market": [
+        "FOOD LOVER"
+    ],
+    "Makro": [
+        "MAKRO"
+    ],
+    "Dis-Chem": [
+        "DIS-CHEM",
+        "DISCHEM"
+    ],
+    "Clicks": [
+        "CLICKS"
+    ],
+    "Game": [
+        "GAME"
+    ],
+    "Pick n Pay Clothing": [
+        "PICK N PAY CLOTHING",
+        "PNP CLOTHING"
+    ],
+    "Woolworths Clothing": [
+        "WOOLWORTHS CLOTHING",
+        "WOOLIES CLOTHING"
+    ]
+}

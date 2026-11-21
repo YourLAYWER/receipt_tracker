@@ -3,7 +3,7 @@ import sqlite3
 import sys
 from datetime import datetime
 from ocr_engine import extract_receipt_text
-from parser import parse_receipt, reconstruct_lines
+from parser import normalize_store_name,parse_receipt, reconstruct_lines
 from categorizer import categorize_item
 
 DB_PATH = os.path.join("data", "expenses.db")
@@ -88,15 +88,15 @@ def save_receipt(parsed: dict, image_filename: str = "") -> int | None:
 
     # Insert line items
     item_rows = [
-    (
-        receipt_id,
-        item["name"],
-        categorize_item(item["name"], item["is_discount"]),
-        item["price"],
-        int(item["is_discount"]),
-    )
-    for item in parsed["items"]
-]
+        (
+            receipt_id,
+            item["name"],
+            item.get("category") or categorize_item(item["name"], item["is_discount"]),
+            item["price"],
+            int(item["is_discount"]),
+        )
+        for item in parsed["items"]
+    ]
     cursor.executemany(
         """
         INSERT INTO line_items (receipt_id, name, category, price, is_discount)
@@ -121,6 +121,17 @@ def recategorize_all():
     cursor.executemany("UPDATE line_items SET category = ? WHERE id = ?", updates)
   print(f"Updated categories for {len(updates)} items.")
 
+
+def normalize_existing_stores():
+  """Normalizes store names for all existing receipts in the database."""
+  with get_connection() as conn:
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, store FROM receipts")
+    rows = cursor.fetchall()
+
+    updates = [(normalize_store_name([store]), r_id) for r_id, store in rows]
+    cursor.executemany("UPDATE receipts SET store = ? WHERE id = ?", updates)
+  print(f"Normalized store names for {len(updates)} receipts.")
 
 if __name__ == "__main__":
   if len(sys.argv) < 2:

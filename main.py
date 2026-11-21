@@ -9,6 +9,7 @@ from database import recategorize_all, save_receipt
 from ocr_engine import extract_receipt_text
 from parser import parse_receipt, reconstruct_lines
 from reports import generate_reports, generate_charts
+from reviewer import review_categories, review_totals
 
 IMAGE_EXTENSIONS = (".jpg", ".jpeg", ".png", ".webp")
 
@@ -22,10 +23,11 @@ def process_single_receipt(image_path: str, save_debug: bool = False):
   print(f"Calculated: R{parsed['calculated_total']:.2f} | Receipt Total: {parsed['receipt_total']}")
 
   if not parsed["totals_match"]:
-    choice = input("Warning: Totals do not match. Save anyway? [y/N]: ").strip().lower()
-    if choice != "y":
+    if not review_totals(parsed):
       print("Skipped.")
       return
+
+  review_categories(parsed)
 
   new_id = save_receipt(parsed, os.path.basename(image_path))
   if new_id:

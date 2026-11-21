@@ -1,0 +1,79 @@
+{
+  "Dairy": [
+    "MILK",
+    "UHT",
+    "AMASI",
+    "CHEESE",
+    "YOGHURT",
+    "BUTTER",
+    "CREAM",
+    "FCHOIC",
+    "FRST CHOICE"
+  ],
+  "Pantry & Staples": [
+    "WHTSTAR",
+    "WHT STAR",
+    "M MEAL",
+    "PORRIDGE",
+    "SELATI",
+    "SUGAR",
+    "NOODLES",
+    "RICE",
+    "PASTA",
+    "FLOUR",
+    "OIL",
+    "PNUTB",
+    "PEANUT",
+    "WATER"
+  ],
+  "Bakery": [
+    "BREAD",
+    "BROWN",
+    "WHITE",
+    "ROLLS",
+    "BUNS",
+    "CAKE"
+  ],
+  "Snacks & Treats": [
+    "P/CORN",
+    "CHIPS",
+    "CHOC",
+    "SWEETS",
+    "BISCUIT",
+    "AER",
+    "SODA",
+    "COKE",
+    "PUDDING"
+  ],
+  "Household & Cleaning": [
+    "DISHWASH",
+    "KITCHEN",
+    "TOILET",
+    "SOAP",
+    "BLEACH",
+    "WASH",
+    "CLEAN"
+  ],
+  "Bags & Fees": [
+    "BAG",
+    "CARR"
+  ],
+  "Meat & Poultry": [
+    "CHICKEN",
+    "BEEF",
+    "MINCE",
+    "PORK",
+    "WORS",
+    "SAUSAGE",
+    "FISH"
+  ],
+  "Fresh Produce": [
+    "APPLE",
+    "BANANA",
+    "POTATO",
+    "ONION",
+    "TOMATO",
+    "VEG",
+    "FRUIT"
+  ]
+}

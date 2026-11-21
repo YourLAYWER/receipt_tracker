@@ -1,8 +1,13 @@
 import math
 import re
 import sys
+import os
+import json
 from statistics import median
-from ocr_engine import extract_receipt_text
+
+STORES_CONFIG_PATH = os.path.join(
+    os.path.dirname(os.path.dirname(__file__)), "config", "stores.json"
+)
 
 
 def reconstruct_lines(ocr_results: list[dict], y_tolerance_ratio: float = 0.45) -> list[str]:
@@ -74,18 +79,38 @@ def reconstruct_lines(ocr_results: list[dict], y_tolerance_ratio: float = 0.45) 
 
   return reconstructed
 
+def normalize_store_name(lines: list[str]) -> str:
+  """Matches the top lines of a receipt against config/stores.json."""
+  if not lines:
+    return "Unknown"
+
+  header_text = " ".join(lines[:5]).upper()
+
+  if os.path.exists(STORES_CONFIG_PATH):
+    with open(STORES_CONFIG_PATH, "r", encoding="utf-8") as f:
+      store_rules = json.load(f)
+
+    for canonical_name, keywords in store_rules.items():
+      if any(kw in header_text for kw in keywords):
+        return canonical_name
+
+  return lines[0].strip().title()
 
 def parse_receipt(lines: list[str]) -> dict:
   """Store-agnostic parser for South African grocery receipts (Shoprite, SuperSpar, etc.)."""
-  store = lines[0] if lines else "UNKNOWN"
+  store = normalize_store_name(lines)
   date = None
   receipt_total = None
   items = []
 
-  # Matches prices at end of line with optional 'R' and trailing VAT/tax flags (A, *, N)
-  price_pattern = re.compile(r"(?:^|\s)(-?R?\s*\d+\.\d{2})[A*N]?\s*$")
-  # Matches unit-price sub-lines like "2 @ R37.99" or "2@ 1.40"
-  multibuy_pattern = re.compile(r"^\d+\s*@\s*R?\s*\d+\.\d{2}")
+  # Allows optional 'R', optional space, and 1-2 trailing VAT flags (e.g., 26.99 A, 15.99 *, 1.25NA)
+  price_pattern = re.compile(r"(?:^|\s)(-?R?\s*\d+\.\d{2})(?:\s*[A*N]{1,2})?\s*$")
+  # Two-line multi-buy WITH line total: e.g., "5@ 1.50 7.50*" or "1@ 24.99 24.99 A"
+  multibuy_with_total = re.compile(
+      r"^\d+\s*@\s*R?\s*\d+\.\d{2}\s+(-?R?\s*\d+\.\d{2})(?:\s*[A*N]{1,2})?\s*$"
+  )
+  # Unit-price-only sub-line (Shoprite style): e.g., "2 @ R37.99"
+  multibuy_only = re.compile(r"^\d+\s*@\s*R?\s*\d+\.\d{2}\s*$")
   # Matches DD/MM/YY, DD.MM.YY, or DD-MM-YYYY
   date_pattern = re.compile(r"\b(\d{2}[/.-]\d{2}[/.-]\d{2,4})\b")
 
@@ -110,6 +135,7 @@ def parse_receipt(lines: list[str]) -> dict:
   discount_keywords = ("SAVEXTRA", "XTRASAVE", "DISCOUNT", "LESS ")
 
   parsing_items = True
+  pending_name = None
 
   for line in lines:
     upper = line.upper()
@@ -134,23 +160,39 @@ def parse_receipt(lines: list[str]) -> dict:
       if total_match:
         raw_total = total_match.group(1).replace("R", "").replace(" ", "")
         receipt_total = float(raw_total)
+      pending_name = None
       continue
 
-    # 4. Skip multi-buy breakdowns and non-item summary lines
-    if multibuy_pattern.match(line) or any(kw in upper for kw in skip_keywords):
+    # 4. Handle two-line multi-buy with line total (SuperSpar style)
+    mb_total_match = multibuy_with_total.match(line)
+    if mb_total_match:
+      if pending_name:
+        raw_price = mb_total_match.group(1).replace("R", "").replace(" ", "")
+        price = float(raw_price)
+        items.append({
+            "name": pending_name,
+            "price": price,
+            "is_discount": price < 0,
+        })
+        pending_name = None
       continue
 
-    # 5. Extract item name and price
+    # 5. Skip unit-price-only multi-buy breakdowns and non-item summary lines
+    if multibuy_only.match(line) or any(kw in upper for kw in skip_keywords):
+      pending_name = None
+      continue
+
+    # 6. Extract standard single-line item and price
     price_match = price_pattern.search(line)
     if price_match:
       raw_price = price_match.group(1).replace("R", "").replace(" ", "")
       price = float(raw_price)
       name = line[: price_match.start()].strip()
+      pending_name = None
 
       if not name:
         continue
 
-      # Force negative price if it's a known discount line (e.g., SuperSpar SAVEXTRA)
       is_discount = price < 0 or any(kw in name.upper() for kw in discount_keywords)
       if is_discount:
         price = -abs(price)
@@ -160,6 +202,9 @@ def parse_receipt(lines: list[str]) -> dict:
           "price": price,
           "is_discount": is_discount,
       })
+    else:
+      # Remember this line in case the next line is a multi-buy price (e.g., "5@ 1.50 7.50*")
+      pending_name = line.strip()
 
   calculated_total = round(sum(item["price"] for item in items), 2)
 
@@ -174,6 +219,9 @@ def parse_receipt(lines: list[str]) -> dict:
 
 
 if __name__ == "__main__":
+
+  from ocr_engine import extract_receipt_text
+
   if len(sys.argv) < 2:
     print("Usage: python src/parser.py data/sample_receipts/Receipt3.jpg")
     sys.exit(1)
